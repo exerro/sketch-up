@@ -1,3 +1,5 @@
+package com.exerro.sketchup
+
 import org.lwjgl.glfw.GLFW
 import java.util.*
 
@@ -12,41 +14,53 @@ data class RedrawEvent(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/** Fired when a mouse/touch interaction has started. */
-data class PointerEvent(
-    val position: ScreenPosition,
-    val updates: PointerEventStream,
-): WindowEvent()
+data class PointerDrag(
+    /** First position of the drag. */
+    val firstPosition: WindowPosition,
+    /** Most recent position of the drag. */
+    val lastPosition: WindowPosition,
+    /** All positions that have been registered during the drag, including first
+     *  and last. */
+    val allPositions: List<WindowPosition>,
+)
 
-enum class PointerInteractionMode {
+/** Represents 3 different kinds of interaction that are possible for different
+ *  input modes. */
+enum class PointerMode {
     Primary,
     Alternate,
     Secondary
 }
 
-sealed class PointerUpdateEvent {
-    data class Press(
-        val mode: PointerInteractionMode,
-        val position: ScreenPosition,
-    ): PointerUpdateEvent()
+/** Fired when a mouse/touch press has occurred. May invalidate a previous press
+ *  (e.g. for double taps). */
+data class PointerPressEvent(
+    val mode: PointerMode,
+    val position: WindowPosition,
+    val invalidates: WindowEvent?
+): WindowEvent()
 
-    data class Drag(
-        val mode: PointerInteractionMode,
-        val initialPosition: ScreenPosition,
-        val finalPosition: ScreenPosition,
-        val positions: List<ScreenPosition>,
-    ): PointerUpdateEvent()
-}
-
-interface PointerEventStream {
-    fun <T> connect(initial: T, onUpdate: (T, PointerUpdateEvent) -> T)
-}
+/** Fired when a mouse/touch press has occurred. May invalidate a previous press
+ *  (e.g. for double taps). This event will be fired for every movement of the
+ *  cursor/touch and also on its release. */
+data class PointerDragEvent(
+    val mode: PointerMode,
+    val drag: PointerDrag,
+    /** Whether this is an ongoing drag (e.g. has not been released). */
+    val ongoing: Boolean,
+    val invalidates: WindowEvent?
+): WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////
 
+enum class ScrollMode {
+    Primary,
+    Secondary
+}
+
 data class ScrollEvent(
-    val dx: Float,
-    val dy: Float
+    val mode: ScrollMode,
+    val delta: Vector<ScreenSpace>
 ): WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -84,13 +98,15 @@ class KeyCombination private constructor(
             else -> GLFW.glfwGetKeyName(key, scancode)
         } ?.let { name -> KeyCombination(name, modifiers) }
 
-        fun fromName(
-            name: String,
-            ctrl: Boolean = false,
-            shift: Boolean = false,
-            alt: Boolean = false,
-            sup: Boolean = false
-        ) = KeyCombination(name, ctrl(GLFW.GLFW_MOD_CONTROL) or shift(GLFW.GLFW_MOD_SHIFT) or alt(GLFW.GLFW_MOD_ALT) or sup(GLFW.GLFW_MOD_SUPER))
+        fun fromName(name: String): KeyCombination {
+            val parts = name.split(Regex("[+-]"))
+            val (modifiers, name) = parts.dropLast(1).map(String::toLowerCase) to parts.last()
+            val ctrl = "ctrl" in modifiers
+            val shift = "shift" in modifiers
+            val alt = "alt" in modifiers
+            val sup = "super" in modifiers
+            return KeyCombination(name, ctrl(GLFW.GLFW_MOD_CONTROL) or shift(GLFW.GLFW_MOD_SHIFT) or alt(GLFW.GLFW_MOD_ALT) or sup(GLFW.GLFW_MOD_SUPER))
+        }
 
         @Suppress("NOTHING_TO_INLINE")
         private inline operator fun Boolean.invoke(modifier: Int) = if (this) modifier else 0
