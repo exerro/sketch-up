@@ -1,4 +1,4 @@
-package com.exerro.sketchup
+package com.exerro.sketchup.impl
 
 import org.lwjgl.nanovg.NanoVG
 import org.lwjgl.nanovg.NanoVGGL3.*

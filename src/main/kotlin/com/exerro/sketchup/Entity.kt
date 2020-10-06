@@ -1,5 +1,8 @@
 package com.exerro.sketchup
 
+import com.exerro.sketchup.data.*
+import com.exerro.sketchup.util.boundingArea
+
 /** An entity in the world. */
 interface Entity {
     /** The bounds of the entity (min/max on each axis). */
@@ -9,7 +12,7 @@ interface Entity {
      *  from rendering. */
     val detail: Scalar<WorldSpace>
     /** Draw the entity to the screen. */
-    fun RendererDrawContext.draw(viewport: Viewport)
+    fun DrawContext.draw(viewport: Viewport)
 }
 
 data class PointEntity(
@@ -25,8 +28,8 @@ data class PointEntity(
 
     override val detail = point.size
 
-    override fun RendererDrawContext.draw(viewport: Viewport) {
-        point(viewport.transform(point.position), viewport.transform(point.size).value.toFloat(), colour)
+    override fun DrawContext.draw(viewport: Viewport) {
+        point(point.transform(viewport.worldToScreen), colour)
     }
 }
 
@@ -34,17 +37,13 @@ data class PathEntity(
     val path: Path<WorldSpace>,
     val colour: Colour,
 ): Entity {
-    override val boundingArea = BoundingArea<WorldSpace>(
-        path.points.map { it.position.x - it.size.value } .minOrNull() ?: 0.0,
-        path.points.map { it.position.x + it.size.value } .maxOrNull() ?: 0.0,
-        path.points.map { it.position.y - it.size.value } .minOrNull() ?: 0.0,
-        path.points.map { it.position.y + it.size.value } .maxOrNull() ?: 0.0,
-    )
-
+    override val boundingArea = path.boundingArea
     override val detail = Scalar<WorldSpace>(path.points.map { it.size.value } .maxOrNull() ?: 0.0)
 
-    override fun RendererDrawContext.draw(viewport: Viewport) {
-        val points = path.points.map { Point(viewport.transform(it.position), viewport.transform(it.size)) }
-        ipath(Path(points), colour)
+    override fun DrawContext.draw(viewport: Viewport) {
+        val points = path.points.map { Point(it.position.transform(viewport.worldToScreen),
+            it.size.transform(viewport.worldToScreen)
+        ) }
+        path(Path(points), colour)
     }
 }

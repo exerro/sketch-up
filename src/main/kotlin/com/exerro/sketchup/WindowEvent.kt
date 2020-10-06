@@ -1,43 +1,45 @@
 package com.exerro.sketchup
 
+import com.exerro.sketchup.data.*
+import com.exerro.sketchup.data.Vector
 import org.lwjgl.glfw.GLFW
 import java.util.*
 
-sealed class WindowEvent
+sealed class ExtendedWindowEvent
+sealed class WindowEvent: ExtendedWindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////
 
+data class PointerPressedEvent(
+    val mode: PointerMode,
+    val position: Vector<ScreenSpace>,
+    val pressure: Scalar<ScreenSpace>,
+): ExtendedWindowEvent()
+
+object PointerReleasedEvent: ExtendedWindowEvent()
+
+////////////////////////////////////////////////////////////////////////////////
+
+/** An indication to redraw with the given size. */
 data class RedrawEvent(
-    val width: Float,
-    val height: Float
+    val windowSize: WindowSize
 ): WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////
-
-data class PointerDrag(
-    /** First position of the drag. */
-    val firstPosition: WindowPosition,
-    /** Most recent position of the drag. */
-    val lastPosition: WindowPosition,
-    /** All positions that have been registered during the drag, including first
-     *  and last. */
-    val allPositions: List<WindowPosition>,
-)
 
 /** Represents 3 different kinds of interaction that are possible for different
  *  input modes. */
 enum class PointerMode {
     Primary,
-    Alternate,
+    Tertiary,
     Secondary
 }
 
-/** Fired when a mouse/touch press has occurred. May invalidate a previous press
- *  (e.g. for double taps). */
+/** Fired when a mouse/touch press has occurred. */
 data class PointerPressEvent(
     val mode: PointerMode,
-    val position: WindowPosition,
-    val invalidates: WindowEvent?
+    val alternate: Boolean,
+    val point: Point<ScreenSpace>
 ): WindowEvent()
 
 /** Fired when a mouse/touch press has occurred. May invalidate a previous press
@@ -45,10 +47,15 @@ data class PointerPressEvent(
  *  cursor/touch and also on its release. */
 data class PointerDragEvent(
     val mode: PointerMode,
-    val drag: PointerDrag,
-    /** Whether this is an ongoing drag (e.g. has not been released). */
-    val ongoing: Boolean,
-    val invalidates: WindowEvent?
+    val alternate: Boolean,
+    val path: Path<ScreenSpace>,
+    /** True if the pointer has been released. */
+    val complete: Boolean
+): WindowEvent()
+
+data class PointerMoveEvent(
+    val position: Vector<ScreenSpace>,
+    val pressure: Scalar<ScreenSpace>,
 ): WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////
