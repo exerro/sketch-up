@@ -16,7 +16,7 @@ class NanoVGRenderer private constructor(
         nvgRGBA(255.toByte(), 192.toByte(), 0.toByte(), 255.toByte(), colourBuffer)
 
         glViewport(0, 0, framebufferWidth, framebufferHeight)
-        glClearColor(0x2e / 256f, 0x34 / 256f, 0x40 / 256f, 1f)
+        glClearColor(0x32 / 256f, 0x37 / 256f, 0x40 / 256f, 1f)
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
         nvgBeginFrame(vg, framebufferWidth.toFloat(), framebufferHeight.toFloat(), framebufferWidth.toFloat() / framebufferHeight)
 

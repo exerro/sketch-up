@@ -1,35 +1,21 @@
 package com.exerro.sketchup
 
-import com.exerro.sketchup.data.*
-import com.exerro.sketchup.impl.BasicEntitySetImpl
-import com.exerro.sketchup.impl.adapters.MainAdapter
+import com.exerro.sketchup.model.ApplicationModel
+import com.exerro.sketchup.model.ClientModel
+import com.exerro.sketchup.model.SketchModel
 
 data class SketchUpModel(
-    val entities: EntitySet,
-    val selectedEntities: Set<Entity>,
-    val lastAddedEntity: Entity?,
-    val viewport: Viewport,
-    val adapter: Adapter,
-    val pointer: Vector<ScreenSpace>,
-    val visualHint: VisualHint,
+    val sketch: SketchModel,
+    val client: ClientModel,
+    val application: ApplicationModel,
 ) {
     companion object {
         val new = SketchUpModel(
-            BasicEntitySetImpl.empty,
-            emptySet(),
-            null,
-            Viewport(WorldPosition(0.0, 0.0), 0.0, WindowSize(0.0, 0.0)),
-            MainAdapter,
-            Vector.origin(),
-            VisualHint.None,
+            SketchModel.fromHost(LocalDebugSketchHost),
+            ClientModel(),
+            ApplicationModel.new,
         )
     }
-}
-
-sealed class VisualHint {
-    object None: VisualHint()
-    data class PathHint(val path: Path<ScreenSpace>): VisualHint()
-    data class SelectionHint(val bounds: BoundingArea<ScreenSpace>): VisualHint()
 }
 
 typealias SketchUpMessage = WindowEvent

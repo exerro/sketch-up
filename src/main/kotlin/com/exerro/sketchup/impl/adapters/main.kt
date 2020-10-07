@@ -9,13 +9,13 @@ import com.exerro.sketchup.util.setSelectionHint
 
 object MainAdapter: Adapter {
     override fun SketchUpModel.handlePrimaryPointerPress(alternate: Boolean, point: Point<ScreenSpace>) = when (alternate) {
-        true -> copy(selectedEntities = setOfNotNull(lastAddedEntity))
-        else -> addPointEntity(newPoint(point, viewport), Colour.blue)
+        true -> copy(application = application.copy(selectedEntities = setOfNotNull(application.lastAddedEntity)))
+        else -> addPointEntity(newPoint(point, application.viewport), Colour.blue)
     }
 
     override fun SketchUpModel.completePrimaryPointerDrag(alternate: Boolean, path: Path<ScreenSpace>) = when {
         alternate -> selectEntities(path)
-        else -> addPathEntity(newPath(path, viewport), Colour.blue)
+        else -> addPathEntity(newPath(path, application.viewport), Colour.blue)
     }
 
     override fun SketchUpModel.completeSecondaryPointerDrag(alternate: Boolean, path: Path<ScreenSpace>) = this
@@ -33,9 +33,9 @@ private fun SketchUpModel.addPathEntity(path: Path<WorldSpace>, colour: Colour) 
     addEntity(PathEntity(path, colour))
 
 private fun SketchUpModel.selectEntities(path: Path<ScreenSpace>): SketchUpModel {
-    val selectedArea = (Path.of(path.first) + Path.of(path.last)).boundingArea.transform(viewport.screenToWorld)
-    val selected = entities.allVisible(viewport).filter { it.boundingArea in selectedArea }
-    return copy(selectedEntities = selected.toSet())
+    val selectedArea = (Path.of(path.first) + Path.of(path.last)).boundingArea.transform(application.viewport.screenToWorld)
+    val selected = sketch.snapshot.entities.allVisible(application.viewport).filter { it.boundingArea in selectedArea }
+    return copy(application = application.copy(selectedEntities = selected.toSet()))
 }
 
 private fun newPoint(point: Point<ScreenSpace>, viewport: Viewport) =

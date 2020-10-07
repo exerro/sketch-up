@@ -22,38 +22,38 @@ fun main() {
 fun SketchUpModel.updateModel(message: SketchUpMessage): SketchUpModel = when (message) {
     is RedrawEvent -> updateViewportWindowSize(message.windowSize)
     is PointerPressEvent -> when (message.mode) {
-        PointerMode.Primary -> adapter.run { handlePrimaryPointerPress(message.alternate, message.point) }
-        PointerMode.Tertiary -> adapter.run { handleSecondaryPointerPress(message.alternate, message.point) }
-        PointerMode.Secondary -> adapter.run { handleTertiaryPointerPress(message.alternate, message.point) }
+        PointerMode.Primary -> application.adapter.run { handlePrimaryPointerPress(message.alternate, message.point) }
+        PointerMode.Tertiary -> application.adapter.run { handleSecondaryPointerPress(message.alternate, message.point) }
+        PointerMode.Secondary -> application.adapter.run { handleTertiaryPointerPress(message.alternate, message.point) }
     }
     is PointerDragEvent -> when (message.complete) {
         true -> when (message.mode) {
-            PointerMode.Primary -> adapter.run { completePrimaryPointerDrag(message.alternate, message.path) }
-            PointerMode.Secondary -> adapter.run { completeSecondaryPointerDrag(message.alternate, message.path) }
+            PointerMode.Primary -> application.adapter.run { completePrimaryPointerDrag(message.alternate, message.path) }
+            PointerMode.Secondary -> application.adapter.run { completeSecondaryPointerDrag(message.alternate, message.path) }
             else -> when (message.alternate) {
                 true -> {
-                    val delta = message.path.offset.transformS(viewport.screenToWorld)
+                    val delta = message.path.offset.transformS(application.viewport.screenToWorld)
                     adjustViewportScale(delta.y * ZOOM_SCALING)
                 }
-                else -> translateViewport(-message.path.offset.transformS(viewport.screenToWorld))
+                else -> translateViewport(-message.path.offset.transformS(application.viewport.screenToWorld))
             }
         }
         else -> when (message.mode) {
             PointerMode.Tertiary -> when (message.alternate) {
                 true -> {
-                    val delta = message.path.offset.transformS(viewport.screenToWorld)
+                    val delta = message.path.offset.transformS(application.viewport.screenToWorld)
                     adjustViewportScale(delta.y * ZOOM_SCALING)
                 }
-                else -> translateViewport(-message.path.offset.transformS(viewport.screenToWorld))
+                else -> translateViewport(-message.path.offset.transformS(application.viewport.screenToWorld))
             }
-            else -> adapter.run { handlePointerDrag(message.mode, message.alternate, message.path) }
+            else -> application.adapter.run { handlePointerDrag(message.mode, message.alternate, message.path) }
         }
     }
     is ScrollEvent -> when (message.mode) {
-        ScrollMode.Primary -> translateViewport(-message.delta.transformS(viewport.screenToWorld) * SCROLL_TRANSLATION_SCALING)
+        ScrollMode.Primary -> translateViewport(-message.delta.transformS(application.viewport.screenToWorld) * SCROLL_TRANSLATION_SCALING)
         ScrollMode.Secondary -> adjustViewportScale(message.delta.y)
     }
-    is PointerMoveEvent -> copy(pointer = message.position)
+    is PointerMoveEvent -> copy(application = application.copy(pointer = message.position))
     is KeyEvent, is InputEvent -> this
 }
 
