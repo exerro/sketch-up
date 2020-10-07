@@ -2,6 +2,8 @@
 
 package com.exerro.sketchup.data
 
+import kotlin.math.sqrt
+
 typealias WindowPosition = Vector<ScreenSpace>
 typealias WorldPosition = Vector<WorldSpace>
 typealias WindowSize = Vector<ScreenSpace>
@@ -11,6 +13,8 @@ data class Vector<Space: VectorSpace>(
     val x: Double,
     val y: Double = x,
 ) {
+    val magnitude get() = sqrt(x * x + y * y)
+
     fun <Space: VectorSpace> toSpace() = Vector<Space>(x, y)
     fun <OutSpace: VectorSpace> transform(transform: VectorSpaceTransform<Space, OutSpace>) = transform.transformVector(this)
     fun <OutSpace: VectorSpace> transformS(transform: VectorSpaceTransform<Space, OutSpace>) = transform.transformVectorS(this)

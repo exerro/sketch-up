@@ -16,9 +16,13 @@ data class BoundingArea<Space: VectorSpace>(
 ) {
     /** Return true if this bounding area overlaps the [other] one. */
     infix fun overlaps(other: BoundingArea<Space>) =
-        xMax > other.xMin && other.xMax > xMin &&
-                yMax > other.yMin && other.yMax > yMin
+        xMax > other.xMin && other.xMax > xMin && yMax > other.yMin && other.yMax > yMin
 
+    /** Return true if this bounding area contains the [other] one. */
+    infix operator fun contains(other: BoundingArea<Space>) =
+        xMin <= other.xMin && xMax >= other.xMax && yMin <= other.yMin && yMax >= other.yMax
+
+    /** Transform this bounding area into another vector space using [transform]. */
     fun <OutSpace: VectorSpace> transform(transform: VectorSpaceTransform<Space, OutSpace>): BoundingArea<OutSpace> {
         val (xMin, yMin) = Vector<Space>(xMin, yMin).transform(transform)
         val (xMax, yMax) = Vector<Space>(xMax, yMax).transform(transform)
