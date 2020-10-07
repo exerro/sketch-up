@@ -17,6 +17,6 @@ class BasicEntitySetImpl private constructor(
 
     companion object {
         val empty = BasicEntitySetImpl(emptySet())
-        const val DETAIL_THRESHOLD = 0.5
+        const val DETAIL_THRESHOLD = 0.2
     }
 }

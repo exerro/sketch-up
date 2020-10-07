@@ -41,9 +41,6 @@ data class PathEntity(
     override val detail = Scalar<WorldSpace>(path.points.map { it.size.value } .maxOrNull() ?: 0.0)
 
     override fun DrawContext.draw(viewport: Viewport) {
-        val points = path.points.map { Point(it.position.transform(viewport.worldToScreen),
-            it.size.transform(viewport.worldToScreen)
-        ) }
-        path(Path(points), colour)
+        path(path.transform(viewport.worldToScreen), colour)
     }
 }

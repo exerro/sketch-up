@@ -2,6 +2,8 @@
 
 package com.exerro.sketchup.data
 
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 typealias WindowPosition = Vector<ScreenSpace>
@@ -13,7 +15,15 @@ data class Vector<Space: VectorSpace>(
     val x: Double,
     val y: Double = x,
 ) {
+    val magnitude2 get() = x * x + y * y
     val magnitude get() = sqrt(x * x + y * y)
+    val normalised get() = this / magnitude
+
+    fun rotate(theta: Double): Vector<Space> {
+        val s = sin(theta)
+        val c = cos(theta)
+        return Vector(x * c - y * s, x * s + y * c)
+    }
 
     fun <Space: VectorSpace> toSpace() = Vector<Space>(x, y)
     fun <OutSpace: VectorSpace> transform(transform: VectorSpaceTransform<Space, OutSpace>) = transform.transformVector(this)

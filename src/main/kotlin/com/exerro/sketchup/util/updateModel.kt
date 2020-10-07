@@ -17,7 +17,7 @@ fun SketchUpModel.adjustViewportScale(adjustment: Double) =
 fun SketchUpModel.setPathHint(path: Path<ScreenSpace>) =
     copy(application = application.copy(visualHint = VisualHint.path(path))).deselect()
 
-fun SketchUpModel.setSelectionHint(first: Point<ScreenSpace>, second: Point<ScreenSpace>) =
+fun SketchUpModel.setSelectionHint(first: PathPoint<ScreenSpace>, second: PathPoint<ScreenSpace>) =
     copy(application = application.copy(visualHint = VisualHint.rectangularSelection((Path.of(first) + Path.of(second)).boundingArea))).deselect()
 
 fun SketchUpModel.addEntity(entity: Entity) = copy(
