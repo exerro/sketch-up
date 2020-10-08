@@ -1,13 +1,16 @@
 package com.exerro.sketchup.impl
 
-import com.exerro.sketchup.*
-import com.exerro.sketchup.data.*
+import com.exerro.sketchup.api.streams.ConnectedObservableStream
+import com.exerro.sketchup.api.util.StreamConnectionManager
+import com.exerro.sketchup.api.streams.ObservableStream
+import com.exerro.sketchup.api.WindowSystem
+import com.exerro.sketchup.api.data.*
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
 import org.lwjgl.opengl.GL
 import org.lwjgl.system.MemoryUtil
 
-fun createGLFWWindowSystem() = object: WindowSystem {
+internal fun createGLFWWindowSystem() = object: WindowSystem {
     override fun createWindow(settings: WindowSettings): ConnectedObservableStream<ExtendedWindowEvent> {
         val id = glfwCreateWindow(settings)
         synchronized(windows) { windows.add(id) }
@@ -86,14 +89,14 @@ private fun glfwCreateWindow(settings: WindowSettings): Long {
 
 /** Create an event stream for window events. */
 private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent> {
-    val subscriptions = ConnectionManager<ExtendedWindowEvent>()
+    val subscriptions = StreamConnectionManager<ExtendedWindowEvent>()
     val wb = IntArray(1)
     val hb = IntArray(1)
     glfwGetFramebufferSize(windowID, wb, hb)
     var width = wb[0].toDouble()
     var height = hb[0].toDouble()
     var heldButton = null as Int?
-    var heldPointerMode = PointerMode.Primary
+    var heldPointerMode: PointerMode
 
     glfwSetKeyCallback(windowID) { _, key, scancode, action, mods ->
         if (key == GLFW_KEY_V && (mods and GLFW_MOD_CONTROL) != 0) {

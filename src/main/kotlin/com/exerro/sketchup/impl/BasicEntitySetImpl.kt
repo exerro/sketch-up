@@ -1,12 +1,10 @@
 package com.exerro.sketchup.impl
 
-import com.exerro.sketchup.Entity
-import com.exerro.sketchup.EntitySet
-import com.exerro.sketchup.Viewport
-import com.exerro.sketchup.data.BoundingArea
-import com.exerro.sketchup.data.WorldSpace
+import com.exerro.sketchup.api.Entity
+import com.exerro.sketchup.api.EntitySet
+import com.exerro.sketchup.api.data.Viewport
 
-class BasicEntitySetImpl private constructor(
+internal class BasicEntitySetImpl private constructor(
     private val entities: Set<Entity>
 ): EntitySet {
     override fun add(entity: Entity) = BasicEntitySetImpl(entities + entity)

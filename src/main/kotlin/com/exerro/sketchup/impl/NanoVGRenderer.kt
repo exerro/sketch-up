@@ -1,14 +1,16 @@
 package com.exerro.sketchup.impl
 
-import com.exerro.sketchup.DrawContext
-import com.exerro.sketchup.data.*
+import com.exerro.sketchup.api.DrawContext
+import com.exerro.sketchup.api.data.*
 import org.lwjgl.nanovg.NVGColor
+import org.lwjgl.nanovg.NanoVG
 import org.lwjgl.nanovg.NanoVG.*
+import org.lwjgl.nanovg.NanoVGGL3
 import org.lwjgl.opengl.GL46C.*
 import kotlin.math.PI
 import kotlin.math.asin
 
-class NanoVGRenderer private constructor(
+internal class NanoVGRenderer private constructor(
     private val vg: Long,
 ) {
 
@@ -23,7 +25,12 @@ class NanoVGRenderer private constructor(
     }
 
     companion object {
-        fun create(vg: Long) = NanoVGRenderer(vg)
+        fun create(): NanoVGRenderer {
+            val nvgContext = NanoVGGL3.nvgCreate(NanoVGGL3.NVG_ANTIALIAS or NanoVGGL3.NVG_STENCIL_STROKES or NanoVGGL3.NVG_DEBUG)
+            nvgFontSize(nvgContext, 22f)
+            nvgFontBlur(nvgContext, 0f)
+            return NanoVGRenderer(nvgContext)
+        }
     }
 }
 
@@ -39,7 +46,7 @@ private class VGDrawContext(
     }
 
     override fun path(path: Path<ScreenSpace>, colour: Colour) {
-        if (path.points.isEmpty()) return
+        if (path.isEmpty()) return
 
          path.points.drop(1).zip(path.points).forEach { (a, b) ->
             if (a.size.value < b.size.value) drawConnectingSegment(smaller = a, larger = b, colour)
@@ -49,12 +56,6 @@ private class VGDrawContext(
         path.points.forEach {
             beginPath(colour, fill = true)
             nvgCircle(vg, it.position.x.toFloat(), it.position.y.toFloat(), it.size.value.toFloat())
-            nvgFill(vg)
-        }
-
-        path.points.forEach {
-            beginPath(Colour.red, fill = true)
-            nvgCircle(vg, it.position.x.toFloat(), it.position.y.toFloat(), 5f)
             nvgFill(vg)
         }
     }
