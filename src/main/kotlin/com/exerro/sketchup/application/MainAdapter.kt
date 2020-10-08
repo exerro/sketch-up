@@ -11,30 +11,30 @@ import kotlin.math.sin
 internal object MainAdapter: Adapter {
     override fun SketchUpModel.handlePrimaryPointerPress(alternate: Boolean, point: Point<ScreenSpace>) = when (alternate) {
         true -> copy(application = application.copy(selectedEntities = setOfNotNull(application.lastAddedEntity)))
-        else -> addPointEntity(newPoint(point, application.viewport), Colour.blue)
+        else -> addPointEntity(newPoint(point, application.viewport))
     }
 
     override fun SketchUpModel.completePrimaryPointerDrag(alternate: Boolean, path: Path<ScreenSpace>) = when {
         alternate -> selectEntities(path)
-        else -> addPathEntity(newPath(path, application.viewport), Colour.blue)
+        else -> addPathEntity(newPath(path, application.viewport))
     }
 
     override fun SketchUpModel.completeSecondaryPointerDrag(alternate: Boolean, path: Path<ScreenSpace>) = this
 
     override fun SketchUpModel.handlePointerDrag(mode: PointerMode, alternate: Boolean, path: Path<ScreenSpace>) = when {
-        alternate -> setSelectionHint(path.first, path.last).selectEntities(path)
+        alternate -> setSelectionHint(path.startPoint, path.endPoint).selectEntities(path)
         else -> setPathHint(path)
     }
 }
 
-private fun SketchUpModel.addPointEntity(point: Point<WorldSpace>, colour: Colour) =
-    addEntity(PointEntity(point, colour))
+private fun SketchUpModel.addPointEntity(point: Point<WorldSpace>) =
+    addEntity(PointEntity(point, client.colour))
 
-private fun SketchUpModel.addPathEntity(path: Path<WorldSpace>, colour: Colour) =
-    addEntity(PathEntity(path.sinWave(), colour)).addEntity(PathEntity(path.approx(), colour))
+private fun SketchUpModel.addPathEntity(path: Path<WorldSpace>) =
+    addEntity(PathEntity(path, client.colour)).addEntity(PathEntity(path.approx(), client.colour))
 
 private fun SketchUpModel.selectEntities(path: Path<ScreenSpace>): SketchUpModel {
-    val selectedArea = (Path.of(path.first) + Path.of(path.last)).boundingArea.transform(application.viewport.screenToWorld)
+    val selectedArea = (Path.of(path.startPoint) + Path.of(path.endPoint)).boundingArea.transform(application.viewport.screenToWorld)
     val selected = sketch.snapshot.entities.allVisible(application.viewport).filter { it.boundingArea in selectedArea }
     return copy(application = application.copy(selectedEntities = selected.toSet()))
 }

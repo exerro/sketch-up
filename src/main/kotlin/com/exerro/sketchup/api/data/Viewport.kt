@@ -6,7 +6,7 @@ import kotlin.math.pow
 data class Viewport(
     val focus: SketchFocus,
     /** Size of the window being rendered to. */
-    val windowSize: WindowSize
+    val windowSize: Vector<ScreenSpace>
 ) {
     val yCorrection = Vector<ScreenSpace>(0.0, (windowSize.y - windowSize.x) / 2)
 

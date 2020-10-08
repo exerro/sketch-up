@@ -8,9 +8,9 @@ data class Path<Space: VectorSpace>(
 ) {
     val firstOrNull: PathPoint<Space>? get() = points.firstOrNull()
     val lastOrNull: PathPoint<Space>? get() = points.lastOrNull()
-    val first: PathPoint<Space> get() = points.firstOrNull() ?: PathPoint.none()
-    val last: PathPoint<Space> get() = points.lastOrNull() ?: PathPoint.none()
-    val offset: Vector<Space> get() = last.position - first.position
+    val startPoint: PathPoint<Space> get() = points.firstOrNull() ?: PathPoint.none()
+    val endPoint: PathPoint<Space> get() = points.lastOrNull() ?: PathPoint.none()
+    val offset: Vector<Space> get() = endPoint.position - startPoint.position
 
     fun isEmpty() = points.isEmpty()
 

@@ -187,6 +187,18 @@ interface Colour {
     }
 }
 
+data class RGB(
+    val red: Float,
+    val green: Float,
+    val blue: Float
+)
+
+data class HSL(
+    val hue: Float,
+    val saturation: Float,
+    val lightness: Float
+)
+
 private fun Float.calculateRGBComponent(temp1: Float, temp2: Float) = when {
     this < 1/6f -> temp1 + (temp2 - temp1) * 6 * this
     this < 1/2f -> temp2

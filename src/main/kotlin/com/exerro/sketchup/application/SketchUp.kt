@@ -1,25 +1,24 @@
 package com.exerro.sketchup.application
 
-import com.exerro.sketchup.api.data.*
+import com.exerro.sketchup.api.data.Colour
+import com.exerro.sketchup.api.data.WindowSettings
 import com.exerro.sketchup.api.streams.ObservableStreamConnection
 import com.exerro.sketchup.impl.LocalDebugSketchHost
-import com.exerro.sketchup.impl.NanoVGRenderer
 import com.exerro.sketchup.impl.createGLFWWindowSystem
 
 internal fun main() {
     val windowing = createGLFWWindowSystem()
-    val events = windowing.createWindow(WindowSettings())
-    val renderer = NanoVGRenderer.create()
+    val window = windowing.createWindow(WindowSettings())
     val connections = mutableListOf<ObservableStreamConnection>()
     val model = SketchUpModel(
         SketchModel.fromHost(LocalDebugSketchHost),
-        ClientModel(),
+        ClientModel(Colour.cyan),
         ApplicationModel.new,
     )
-    val models = events.eventTransformedFold(model, SketchUpModel::updateModel)
+    val models = window.events.eventTransformedFold(model, SketchUpModel::updateModel)
 
     connections.add(models)
-    connections.add(models.connect(renderer::drawModel))
+    connections.add(models.connect { m -> window.draw { drawModel(m) } })
     windowing.runBlocking()
     connections.forEach(ObservableStreamConnection::disconnect)
 }

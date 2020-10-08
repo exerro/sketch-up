@@ -1,26 +1,42 @@
 package com.exerro.sketchup.impl
 
-import com.exerro.sketchup.api.streams.ConnectedObservableStream
-import com.exerro.sketchup.api.util.StreamConnectionManager
-import com.exerro.sketchup.api.streams.ObservableStream
+import com.exerro.sketchup.api.DrawContext
+import com.exerro.sketchup.api.Window
 import com.exerro.sketchup.api.WindowSystem
 import com.exerro.sketchup.api.data.*
+import com.exerro.sketchup.api.streams.ObservableStream
+import com.exerro.sketchup.api.util.StreamConnectionManager
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
 import org.lwjgl.opengl.GL
 import org.lwjgl.system.MemoryUtil
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.BlockingQueue
+import kotlin.concurrent.thread
 
 internal fun createGLFWWindowSystem() = object: WindowSystem {
-    override fun createWindow(settings: WindowSettings): ConnectedObservableStream<ExtendedWindowEvent> {
+    override fun createWindow(settings: WindowSettings): Window {
         val id = glfwCreateWindow(settings)
         synchronized(windows) { windows.add(id) }
         val events = glfwHookEvents(id)
+        val worker = WorkerThread(id)
+        val render = RenderThread(id)
 
-        events.connect { dirtyWindows.add(id) }
+        val eventStream = ObservableStream<ExtendedWindowEvent> { onItem ->
+            events.connect { item -> worker.submit { onItem(item) } }
+        }
 
-        return object: ConnectedObservableStream<ExtendedWindowEvent> {
-            override fun disconnect() { glfwSetWindowShouldClose(id, true) }
-            override fun connect(onItem: (ExtendedWindowEvent) -> Unit) = events.connect(onItem)
+        return object: Window {
+            override val events get() = eventStream
+
+            override fun close() {
+                glfwSetWindowShouldClose(id, true)
+                worker.stop()
+                render.stop()
+            }
+
+            override fun draw(draw: DrawContext.() -> Unit) =
+                render.submit(draw)
         }
     }
 
@@ -36,9 +52,7 @@ internal fun createGLFWWindowSystem() = object: WindowSystem {
 
             if (!anyRemaining) break
 
-            dirtyWindows.clear()
             glfwWaitEventsTimeout(0.05)
-            dirtyWindows.forEach(::glfwSwapBuffers)
         }
 
         glfwTerminate()
@@ -46,7 +60,6 @@ internal fun createGLFWWindowSystem() = object: WindowSystem {
     }
 
     private val windows = mutableListOf<Long>()
-    private val dirtyWindows = mutableSetOf<Long>()
 
     init {
         glfwSetErrorCallback(GLFWErrorCallback.createPrint(System.err))
@@ -80,11 +93,13 @@ private fun glfwCreateWindow(settings: WindowSettings): Long {
         glfwShowWindow(windowID)
     }
 
+    return windowID
+}
+
+private fun glfwSetupWindowGL(windowID: Long) {
     glfwMakeContextCurrent(windowID)
     glfwSwapInterval(1)
     GL.createCapabilities()
-
-    return windowID
 }
 
 /** Create an event stream for window events. */
@@ -115,7 +130,7 @@ private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent
         val xb = DoubleArray(1)
         val yb = DoubleArray(1)
         glfwGetCursorPos(windowID, xb, yb)
-        val position = WindowPosition(xb[0], yb[0])
+        val position = Vector<ScreenSpace>(xb[0], yb[0])
         heldPointerMode = when (button) {
             GLFW_MOUSE_BUTTON_1 -> PointerMode.Primary
             GLFW_MOUSE_BUTTON_2 -> PointerMode.Secondary
@@ -137,7 +152,7 @@ private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent
     }
 
     glfwSetCursorPosCallback(windowID) { _, x, y ->
-        val position = WindowPosition(x, y)
+        val position = Vector<ScreenSpace>(x, y)
         subscriptions.invoke(PointerMoveEvent(position, pressure))
     }
 
@@ -172,3 +187,61 @@ private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent
 }
 
 private val pressure = Scalar<ScreenSpace>(1.0)
+
+class WorkerThread(
+    windowID: Long
+) {
+    fun submit(fn: () -> Unit) {
+        queue.put(fn)
+    }
+
+    fun stop() {
+        running = false
+        queue.put {}
+    }
+
+    init {
+        thread(name = "Worker $windowID", start = true, isDaemon = true) {
+            queue = ArrayBlockingQueue(1024)
+            while (running) queue.take()()
+        }
+    }
+
+    private var running = true
+    private lateinit var queue: BlockingQueue<() -> Unit>
+}
+
+class RenderThread(
+    private val windowID: Long
+) {
+    fun submit(fn: DrawContext.() -> Unit) {
+        synchronized(drawLock) { draw = fn }
+    }
+
+    fun stop() {
+        running = false
+    }
+
+    init {
+        thread(name = "Render $windowID", start = true, isDaemon = true) {
+            glfwSetupWindowGL(windowID)
+            graphics = NanoVGRenderer.create()
+
+            while (running) {
+                synchronized(drawLock) { draw.also { draw = null } }
+                    ?.let { draw ->
+                        val width = IntArray(1)
+                        val height = IntArray(1)
+                        glfwGetFramebufferSize(windowID, width, height)
+                        graphics.draw(width[0], height[0], draw)
+                        glfwSwapBuffers(windowID)
+                    }
+            }
+        }
+    }
+
+    private var running = true
+    private var draw: (DrawContext.() -> Unit)? = null
+    private val drawLock = Object()
+    private lateinit var graphics: NanoVGRenderer
+}

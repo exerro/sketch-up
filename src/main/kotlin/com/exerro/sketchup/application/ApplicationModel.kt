@@ -20,7 +20,7 @@ internal data class ApplicationModel(
             adapter = MainAdapter,
             pointer = Vector.origin(),
             visualHint = VisualHint.none,
-            viewport = Viewport(SketchFocus(WorldPosition(0.0, 0.0), 0.0), WindowSize(0.0, 0.0)),
+            viewport = Viewport(SketchFocus(Vector(0.0, 0.0), 0.0), Vector(0.0, 0.0)),
         )
     }
 }

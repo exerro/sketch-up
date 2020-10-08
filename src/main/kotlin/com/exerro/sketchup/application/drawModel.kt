@@ -1,12 +1,10 @@
 package com.exerro.sketchup.application
 
+import com.exerro.sketchup.api.DrawContext
 import com.exerro.sketchup.api.data.Colour
 import com.exerro.sketchup.impl.NanoVGRenderer
 
-internal fun NanoVGRenderer.drawModel(model: SketchUpModel) = draw(
-    model.application.viewport.windowSize.x.toInt(),
-    model.application.viewport.windowSize.y.toInt()
-) {
+internal fun DrawContext.drawModel(model: SketchUpModel) {
     model.sketch.snapshot.entities.allVisible(model.application.viewport).forEach {
         it.run { draw(model.application.viewport) }
     }

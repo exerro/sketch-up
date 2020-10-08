@@ -17,7 +17,7 @@ object PointerReleasedEvent: ExtendedWindowEvent()
 
 /** An indication to redraw with the given size. */
 data class RedrawEvent(
-    val windowSize: WindowSize
+    val windowSize: Vector<ScreenSpace>
 ): WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////

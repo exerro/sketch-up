@@ -1,12 +1,12 @@
 package com.exerro.sketchup.application
 
-import com.exerro.sketchup.api.streams.ConnectedObservable
-import com.exerro.sketchup.api.streams.ConnectedObservableStream
-import com.exerro.sketchup.api.util.fold
 import com.exerro.sketchup.api.data.*
+import com.exerro.sketchup.api.streams.ConnectedObservable
+import com.exerro.sketchup.api.streams.ObservableStream
+import com.exerro.sketchup.api.util.fold
 import org.lwjgl.glfw.GLFW.glfwGetTime
 
-internal fun <Model> ConnectedObservableStream<ExtendedWindowEvent>.eventTransformedFold(
+internal fun <Model> ObservableStream<ExtendedWindowEvent>.eventTransformedFold(
     initialModel: Model,
     updateModel: (Model, WindowEvent) -> Model
 ): ConnectedObservable<Model> {
@@ -122,10 +122,10 @@ private sealed class PointerContext<out Model> {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-private fun isAlternate(context: PointerContext.ReadyForAlternate<*>, mode: PointerMode, position: WindowPosition) =
+private fun isAlternate(context: PointerContext.ReadyForAlternate<*>, mode: PointerMode, position: Vector<ScreenSpace>) =
     context.mode == mode && glfwGetTime() <= context.releaseTime + TIMEOUT && !movedTooFar(context.initialPosition, position)
 
-private fun movedTooFar(a: WindowPosition, b: WindowPosition) =
+private fun movedTooFar(a: Vector<ScreenSpace>, b: Vector<ScreenSpace>) =
     (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) > MOVEMENT_THRESHOLD_SQUARED
 
 ////////////////////////////////////////////////////////////////////////////////

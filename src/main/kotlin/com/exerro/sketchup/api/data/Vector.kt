@@ -7,10 +7,6 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-typealias WindowPosition = Vector<ScreenSpace>
-typealias WorldPosition = Vector<WorldSpace>
-typealias WindowSize = Vector<ScreenSpace>
-
 /** 2D vector in the given vector space. */
 data class Vector<Space: VectorSpace>(
     val x: Double,
