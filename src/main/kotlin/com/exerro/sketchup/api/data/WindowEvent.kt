@@ -1,6 +1,8 @@
 package com.exerro.sketchup.api.data
 
-sealed class ExtendedWindowEvent
+import com.exerro.sketchup.api.Event
+
+sealed class ExtendedWindowEvent: Event
 sealed class WindowEvent: ExtendedWindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////

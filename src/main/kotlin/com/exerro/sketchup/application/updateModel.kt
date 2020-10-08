@@ -2,12 +2,13 @@ package com.exerro.sketchup.application
 
 import com.exerro.sketchup.api.VisualHint
 import com.exerro.sketchup.api.Entity
+import com.exerro.sketchup.api.Event
 import com.exerro.sketchup.api.data.*
 import com.exerro.sketchup.api.util.path
 import com.exerro.sketchup.api.util.rectangularSelection
 import com.exerro.sketchup.util.boundingArea
 
-internal fun SketchUpModel.updateModel(message: WindowEvent): SketchUpModel = when (message) {
+internal fun SketchUpModel.updateModel(message: Event): SketchUpModel = when (message) {
     is RedrawEvent -> updateViewportWindowSize(message.windowSize)
     is PointerPressEvent -> when (message.mode) {
         PointerMode.Primary -> application.adapter.run { handlePrimaryPointerPress(message.alternate, message.point) }
@@ -42,7 +43,7 @@ internal fun SketchUpModel.updateModel(message: WindowEvent): SketchUpModel = wh
         ScrollMode.Secondary -> adjustViewportScale(message.delta.y)
     }
     is PointerMoveEvent -> copy(application = application.copy(pointer = message.position))
-    is KeyEvent, is InputEvent -> this
+    else -> this
 }
 
 internal fun SketchUpModel.updateViewportWindowSize(size: Vector<ScreenSpace>) =

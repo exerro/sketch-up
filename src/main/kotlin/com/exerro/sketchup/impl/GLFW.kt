@@ -215,7 +215,10 @@ class RenderThread(
     private val windowID: Long
 ) {
     fun submit(fn: DrawContext.() -> Unit) {
-        synchronized(drawLock) { draw = fn }
+        synchronized(drawLock) {
+            draw = fn
+            drawLock.notifyAll()
+        }
     }
 
     fun stop() {
@@ -228,14 +231,16 @@ class RenderThread(
             graphics = NanoVGRenderer.create()
 
             while (running) {
-                synchronized(drawLock) { draw.also { draw = null } }
-                    ?.let { draw ->
-                        val width = IntArray(1)
-                        val height = IntArray(1)
-                        glfwGetFramebufferSize(windowID, width, height)
-                        graphics.draw(width[0], height[0], draw)
-                        glfwSwapBuffers(windowID)
-                    }
+                synchronized(drawLock) {
+                    if (draw == null) drawLock.wait()
+                    draw.also { draw = null }
+                } ?.let { draw ->
+                    val width = IntArray(1)
+                    val height = IntArray(1)
+                    glfwGetFramebufferSize(windowID, width, height)
+                    graphics.draw(width[0], height[0], draw)
+                    glfwSwapBuffers(windowID)
+                }
             }
         }
     }

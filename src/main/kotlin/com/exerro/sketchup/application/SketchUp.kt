@@ -17,6 +17,9 @@ internal fun main() {
     )
     val models = window.events.eventTransformedFold(model, SketchUpModel::updateModel)
 
+    window.draw { drawModel(model) }
+    window.draw { drawModel(model) }
+
     connections.add(models)
     connections.add(models.connect { m -> window.draw { drawModel(m) } })
     windowing.runBlocking()

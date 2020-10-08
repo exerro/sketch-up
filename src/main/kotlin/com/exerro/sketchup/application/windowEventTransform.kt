@@ -1,21 +1,21 @@
 package com.exerro.sketchup.application
 
+import com.exerro.sketchup.api.Event
 import com.exerro.sketchup.api.data.*
 import com.exerro.sketchup.api.streams.ConnectedObservable
 import com.exerro.sketchup.api.streams.ObservableStream
 import com.exerro.sketchup.api.util.fold
 import org.lwjgl.glfw.GLFW.glfwGetTime
 
-internal fun <Model> ObservableStream<ExtendedWindowEvent>.eventTransformedFold(
+internal fun <Model> ObservableStream<Event>.eventTransformedFold(
     initialModel: Model,
-    updateModel: (Model, WindowEvent) -> Model
+    updateModel: (Model, Event) -> Model
 ): ConnectedObservable<Model> {
     val c = fold(WrappedModelState(initialModel, PointerContext.Default)) { (currentModel, context), event -> when (event) {
-        is RedrawEvent -> WrappedModelState(updateModel(currentModel, event), context)
         is PointerMoveEvent -> handlePointerMove(currentModel, context, event, updateModel)
-        is WindowEvent -> WrappedModelState(updateModel(currentModel, event), PointerContext.Default)
         is PointerPressedEvent -> handlePointerPress(currentModel, context, event, updateModel)
         PointerReleasedEvent -> handlePointerRelease(currentModel, context, updateModel)
+        else -> WrappedModelState(updateModel(currentModel, event), context.map { updateModel(it, event) })
     } }
 
     return object: ConnectedObservable<Model> {
@@ -122,8 +122,21 @@ private sealed class PointerContext<out Model> {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+private fun <Model> PointerContext<Model>.map(fn: (Model) -> Model) = when (this) {
+    PointerContext.Default -> this
+    is PointerContext.ReadyForAlternate -> when {
+        timedOut(this) -> PointerContext.Default
+        else -> copy(restoreModel = fn(restoreModel))
+    }
+    is PointerContext.Pressed -> copy(restoreModel = fn(restoreModel))
+    is PointerContext.PressedMoved -> copy(restoreModel = fn(restoreModel))
+}
+
 private fun isAlternate(context: PointerContext.ReadyForAlternate<*>, mode: PointerMode, position: Vector<ScreenSpace>) =
-    context.mode == mode && glfwGetTime() <= context.releaseTime + TIMEOUT && !movedTooFar(context.initialPosition, position)
+    context.mode == mode && !timedOut(context) && !movedTooFar(context.initialPosition, position)
+
+private fun timedOut(context: PointerContext.ReadyForAlternate<*>) =
+    glfwGetTime() > context.releaseTime + TIMEOUT
 
 private fun movedTooFar(a: Vector<ScreenSpace>, b: Vector<ScreenSpace>) =
     (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) > MOVEMENT_THRESHOLD_SQUARED

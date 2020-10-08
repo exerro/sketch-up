@@ -4,7 +4,7 @@ import com.exerro.sketchup.api.VectorSpaceTransform
 import kotlin.math.pow
 
 data class Viewport(
-    val focus: SketchFocus,
+    val focus: SketchLocation,
     /** Size of the window being rendered to. */
     val windowSize: Vector<ScreenSpace>
 ) {
