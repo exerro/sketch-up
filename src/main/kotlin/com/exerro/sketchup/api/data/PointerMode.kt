@@ -1,9 +1,20 @@
 package com.exerro.sketchup.api.data
 
-/** Represents 3 different kinds of interaction that are possible for different
- *  input modes. */
-enum class PointerMode {
+data class PointerMode(
+    val modifiers: Set<PointerModifier>,
+    val button: PointerButton,
+    val alternate: Boolean,
+)
+
+enum class PointerButton {
     Primary,
     Tertiary,
     Secondary
+}
+
+enum class PointerModifier {
+    Control,
+    Shift,
+    Alt,
+    Super
 }

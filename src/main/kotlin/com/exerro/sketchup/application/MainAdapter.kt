@@ -1,6 +1,11 @@
 package com.exerro.sketchup.application
 
+import com.exerro.sketchup.api.Entity
+import com.exerro.sketchup.api.VisualHint
 import com.exerro.sketchup.api.data.*
+import com.exerro.sketchup.api.util.path
+import com.exerro.sketchup.api.util.rectangularSelection
+import com.exerro.sketchup.application.MainAdapter.handleCompleteDrag
 import com.exerro.sketchup.impl.entities.PathEntity
 import com.exerro.sketchup.impl.entities.PointEntity
 import com.exerro.sketchup.util.boundingArea
@@ -9,21 +14,35 @@ import kotlin.math.pow
 import kotlin.math.sin
 
 internal object MainAdapter: Adapter {
-    override fun SketchUpModel.handlePrimaryPointerPress(alternate: Boolean, point: Point<ScreenSpace>) = when (alternate) {
-        true -> copy(application = application.copy(selectedEntities = setOfNotNull(application.lastAddedEntity)))
-        else -> addPointEntity(newPoint(point, application.viewport))
+    override fun SketchUpModel.handlePress(interaction: InteractionType, point: Point<ScreenSpace>) = when (interaction) {
+        InteractionType.Sketch -> addPointEntity(newPoint(point, application.viewport))
+        InteractionType.SelectMeta -> copy(application = application.copy(selectedEntities = setOfNotNull(application.lastAddedEntity)))
+        InteractionType.Navigation,
+        InteractionType.SpecialNavigation,
+        InteractionType.SelectSpatial,
+        InteractionType.SelectTemporal,
+        InteractionType.Action -> this
     }
 
-    override fun SketchUpModel.completePrimaryPointerDrag(alternate: Boolean, path: Path<ScreenSpace>) = when {
-        alternate -> selectEntities(path)
-        else -> addPathEntity(newPath(path, application.viewport))
+    override fun SketchUpModel.handleCompleteDrag(interaction: InteractionType, path: Path<ScreenSpace>) = when (interaction) {
+        InteractionType.Sketch -> addPathEntity(newPath(path, application.viewport))
+        InteractionType.SelectSpatial -> selectEntities(path)
+        InteractionType.Navigation -> translateViewport(-path.offset.transformS(application.viewport.screenToWorld))
+        InteractionType.SpecialNavigation,
+        InteractionType.SelectTemporal,
+        InteractionType.SelectMeta,
+        InteractionType.Action -> this
     }
 
-    override fun SketchUpModel.completeSecondaryPointerDrag(alternate: Boolean, path: Path<ScreenSpace>) = this
-
-    override fun SketchUpModel.handlePointerDrag(mode: PointerMode, alternate: Boolean, path: Path<ScreenSpace>) = when {
-        alternate -> setSelectionHint(path.startPoint, path.endPoint).selectEntities(path)
-        else -> setPathHint(path)
+    override fun SketchUpModel.handlePartialDrag(interaction: InteractionType, path: Path<ScreenSpace>) = when (interaction) {
+        InteractionType.SelectSpatial -> setSelectionHint(path.startPoint, path.endPoint).selectEntities(path)
+        InteractionType.Navigation -> translateViewport(-path.offset.transformS(application.viewport.screenToWorld))
+        InteractionType.SpecialNavigation,
+        InteractionType.SelectTemporal,
+        InteractionType.SelectMeta,
+        InteractionType.Action,
+        InteractionType.Sketch
+        -> setPathHint(path)
     }
 }
 
@@ -32,6 +51,20 @@ private fun SketchUpModel.addPointEntity(point: Point<WorldSpace>) =
 
 private fun SketchUpModel.addPathEntity(path: Path<WorldSpace>) =
     addEntity(PathEntity(path, client.colour)).addEntity(PathEntity(path.approx(), client.colour))
+
+internal fun SketchUpModel.setPathHint(path: Path<ScreenSpace>) =
+    copy(application = application.copy(visualHint = VisualHint.path(path))).deselect()
+
+internal fun SketchUpModel.setSelectionHint(first: PathPoint<ScreenSpace>, second: PathPoint<ScreenSpace>) =
+    copy(application = application.copy(visualHint = VisualHint.rectangularSelection((Path.of(first) + Path.of(second)).boundingArea))).deselect()
+
+internal fun SketchUpModel.addEntity(entity: Entity) = copy(
+    sketch = sketch.copy(snapshot = sketch.snapshot.copy(entities = sketch.snapshot.entities.add(entity))),
+    application = application.copy(lastAddedEntity = entity),
+).deselect()
+
+internal fun SketchUpModel.deselect() =
+    copy(application = application.copy(selectedEntities = emptySet()))
 
 private fun SketchUpModel.selectEntities(path: Path<ScreenSpace>): SketchUpModel {
     val selectedArea = (Path.of(path.startPoint) + Path.of(path.endPoint)).boundingArea.transform(application.viewport.screenToWorld)

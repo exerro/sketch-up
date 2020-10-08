@@ -8,12 +8,13 @@ sealed class WindowEvent: ExtendedWindowEvent()
 ////////////////////////////////////////////////////////////////////////////////
 
 data class PointerPressedEvent(
-    val mode: PointerMode,
+    val button: PointerButton,
+    val modifiers: Set<PointerModifier>,
     val position: Vector<ScreenSpace>,
     val pressure: Scalar<ScreenSpace>,
-): ExtendedWindowEvent()
+): WindowEvent()
 
-object PointerReleasedEvent: ExtendedWindowEvent()
+object PointerReleasedEvent: WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -23,24 +24,6 @@ data class RedrawEvent(
 ): WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////
-
-/** Fired when a mouse/touch press has occurred. */
-data class PointerPressEvent(
-    val mode: PointerMode,
-    val alternate: Boolean,
-    val point: Point<ScreenSpace>
-): WindowEvent()
-
-/** Fired when a mouse/touch press has occurred. May invalidate a previous press
- *  (e.g. for double taps). This event will be fired for every movement of the
- *  cursor/touch and also on its release. */
-data class PointerDragEvent(
-    val mode: PointerMode,
-    val alternate: Boolean,
-    val path: Path<ScreenSpace>,
-    /** True if the pointer has been released. */
-    val complete: Boolean
-): WindowEvent()
 
 data class PointerMoveEvent(
     val position: Vector<ScreenSpace>,
@@ -56,7 +39,8 @@ enum class ScrollMode {
 
 data class ScrollEvent(
     val mode: ScrollMode,
-    val delta: Vector<ScreenSpace>
+    val delta: Vector<ScreenSpace>,
+    val position: Vector<ScreenSpace>,
 ): WindowEvent()
 
 ////////////////////////////////////////////////////////////////////////////////

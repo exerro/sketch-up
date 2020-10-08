@@ -111,7 +111,7 @@ private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent
     var width = wb[0].toDouble()
     var height = hb[0].toDouble()
     var heldButton = null as Int?
-    var heldPointerMode: PointerMode
+    var heldPointerButton: PointerButton
 
     glfwSetKeyCallback(windowID) { _, key, scancode, action, mods ->
         if (key == GLFW_KEY_V && (mods and GLFW_MOD_CONTROL) != 0) {
@@ -126,20 +126,20 @@ private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent
         }
     }
 
-    glfwSetMouseButtonCallback(windowID) { _, button, action, _ ->
+    glfwSetMouseButtonCallback(windowID) { _, button, action, mods ->
         val xb = DoubleArray(1)
         val yb = DoubleArray(1)
         glfwGetCursorPos(windowID, xb, yb)
         val position = Vector<ScreenSpace>(xb[0], yb[0])
-        heldPointerMode = when (button) {
-            GLFW_MOUSE_BUTTON_1 -> PointerMode.Primary
-            GLFW_MOUSE_BUTTON_2 -> PointerMode.Secondary
-            else -> PointerMode.Tertiary
+        heldPointerButton = when (button) {
+            GLFW_MOUSE_BUTTON_1 -> PointerButton.Primary
+            GLFW_MOUSE_BUTTON_2 -> PointerButton.Secondary
+            else -> PointerButton.Tertiary
         }
 
         if (action == GLFW_PRESS) {
             if (heldButton == null) {
-                subscriptions.invoke(PointerPressedEvent(heldPointerMode, position, pressure))
+                subscriptions.invoke(PointerPressedEvent(heldPointerButton, getPointerModifiers(mods), position, pressure)) // TODO!
                 heldButton = button
             }
         }
@@ -160,7 +160,11 @@ private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent
         val lctrl = glfwGetKey(windowID, GLFW_KEY_LEFT_CONTROL) == GLFW_TRUE
         val rctrl = glfwGetKey(windowID, GLFW_KEY_RIGHT_CONTROL) == GLFW_TRUE
         val mode = if (lctrl || rctrl) ScrollMode.Secondary else ScrollMode.Primary
-        subscriptions.invoke(ScrollEvent(mode, Vector(dx, dy)))
+        val xb = DoubleArray(1)
+        val yb = DoubleArray(1)
+
+        glfwGetCursorPos(windowID, xb, yb)
+        subscriptions.invoke(ScrollEvent(mode, Vector(dx, dy), Vector(xb[0], yb[0])))
     }
 
     glfwSetCharCallback(windowID) { _, codepoint ->
@@ -185,6 +189,13 @@ private fun glfwHookEvents(windowID: Long): ObservableStream<ExtendedWindowEvent
 
     return ObservableStream(subscriptions::add)
 }
+
+private fun getPointerModifiers(mods: Int) = setOfNotNull(
+    PointerModifier.Control.takeIf { mods and GLFW_MOD_CONTROL != 0 },
+    PointerModifier.Shift.takeIf { mods and GLFW_MOD_SHIFT != 0 },
+    PointerModifier.Alt.takeIf { mods and GLFW_MOD_ALT != 0 },
+    PointerModifier.Super.takeIf { mods and GLFW_MOD_SUPER != 0 },
+)
 
 private val pressure = Scalar<ScreenSpace>(1.0)
 

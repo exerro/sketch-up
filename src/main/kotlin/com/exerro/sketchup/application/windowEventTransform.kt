@@ -31,19 +31,19 @@ private fun <Model> handlePointerMove(
     currentModel: Model,
     context: PointerContext<Model>,
     event: PointerMoveEvent,
-    updateModel: (Model, WindowEvent) -> Model
+    updateModel: (Model, Event) -> Model
 ) = when (context) {
     is PointerContext.Pressed -> {
         val path = Path.of(context.position, context.pressure) + Path.of(event.position, event.pressure)
         WrappedModelState(
-            updateModel(updateModel(context.restoreModel, event), PointerDragEvent(context.mode, context.alternate, path, false)),
+            updateModel(updateModel(context.restoreModel, event), PointerDragEvent(context.mode.copy(alternate = context.alternate), path, false)),
             PointerContext.PressedMoved(context.mode, path, context.restoreModel, context.alternate)
         )
     }
     is PointerContext.PressedMoved -> {
         val path = context.path + Path.of(event.position, event.pressure)
         WrappedModelState(
-            updateModel(updateModel(context.restoreModel, event), PointerDragEvent(context.mode, context.alternate, path, false)),
+            updateModel(updateModel(context.restoreModel, event), PointerDragEvent(context.mode.copy(alternate = context.alternate), path, false)),
             PointerContext.PressedMoved(context.mode, path, context.restoreModel, context.alternate)
         )
     }
@@ -54,18 +54,22 @@ private fun <Model> handlePointerPress(
     currentModel: Model,
     context: PointerContext<Model>,
     event: PointerPressedEvent,
-    updateModel: (Model, WindowEvent) -> Model
+    updateModel: (Model, Event) -> Model
 ) = when (context) {
-    PointerContext.Default -> WrappedModelState(
-        updateModel(currentModel, PointerPressEvent(event.mode, false, Point(event.position, event.pressure))),
-        PointerContext.Pressed(event.mode, event.position, event.pressure, currentModel, alternate = false)
-    )
+    PointerContext.Default -> {
+        val mode = PointerMode(event.modifiers, event.button, alternate = false)
+        WrappedModelState(
+            updateModel(currentModel, PointerPressEvent(mode, Point(event.position, event.pressure))),
+            PointerContext.Pressed(mode, event.position, event.pressure, currentModel, alternate = false)
+        )
+    }
     is PointerContext.ReadyForAlternate -> {
-        val alternate = isAlternate(context, event.mode, event.position)
+        val alternate = isAlternate(context, event.button, event.position)
+        val mode = PointerMode(event.modifiers, event.button, alternate = alternate)
         val model = if (alternate) context.restoreModel else currentModel
         WrappedModelState(
-            updateModel(model, PointerPressEvent(event.mode, alternate, Point(event.position, event.pressure))),
-            PointerContext.Pressed(event.mode, event.position, event.pressure, model, alternate = alternate)
+            updateModel(model, PointerPressEvent(mode, Point(event.position, event.pressure))),
+            PointerContext.Pressed(mode, event.position, event.pressure, model, alternate)
         )
     }
     else -> WrappedModelState(currentModel, context)
@@ -74,14 +78,14 @@ private fun <Model> handlePointerPress(
 private fun <Model> handlePointerRelease(
     currentModel: Model,
     context: PointerContext<Model>,
-    updateModel: (Model, WindowEvent) -> Model
+    updateModel: (Model, Event) -> Model
 ) = when (context) {
     is PointerContext.Pressed -> when (context.alternate) {
         true -> WrappedModelState(currentModel, PointerContext.Default)
         else -> WrappedModelState(currentModel, PointerContext.ReadyForAlternate(context.mode, context.restoreModel, context.position, glfwGetTime()))
     }
     is PointerContext.PressedMoved -> WrappedModelState(
-        updateModel(context.restoreModel, PointerDragEvent(context.mode, context.alternate, context.path, true)),
+        updateModel(context.restoreModel, PointerDragEvent(context.mode.copy(alternate = context.alternate), context.path, true)),
         PointerContext.Default
     )
     else -> WrappedModelState(currentModel, PointerContext.Default)
@@ -132,8 +136,8 @@ private fun <Model> PointerContext<Model>.map(fn: (Model) -> Model) = when (this
     is PointerContext.PressedMoved -> copy(restoreModel = fn(restoreModel))
 }
 
-private fun isAlternate(context: PointerContext.ReadyForAlternate<*>, mode: PointerMode, position: Vector<ScreenSpace>) =
-    context.mode == mode && !timedOut(context) && !movedTooFar(context.initialPosition, position)
+private fun isAlternate(context: PointerContext.ReadyForAlternate<*>, mode: PointerButton, position: Vector<ScreenSpace>) =
+    context.mode.button == mode && !timedOut(context) && !movedTooFar(context.initialPosition, position)
 
 private fun timedOut(context: PointerContext.ReadyForAlternate<*>) =
     glfwGetTime() > context.releaseTime + TIMEOUT
